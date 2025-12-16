@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custom Key Encoder & Decoder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
+            },
+            colors: {
+              // Extending neutral if needed, but standard palette works well for graphite
+              graphite: {
+                950: '#0a0a0a',
+                900: '#171717',
+                800: '#262626',
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #0a0a0a; /* neutral-950 */
+        color: #e5e5e5; /* neutral-200 */
+      }
+      /* Custom scrollbar for code areas */
+      textarea::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      textarea::-webkit-scrollbar-track {
+        background: #171717;
+      }
+      textarea::-webkit-scrollbar-thumb {
+        background: #404040;
+        border-radius: 5px;
+      }
+      textarea::-webkit-scrollbar-thumb:hover {
+        background: #525252;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "Custom Key Encoder & Decoder",
+  "description": "A powerful, optimized tool to encode and decode text using custom character keys and 1-based index mapping.",
+  "requestFramePermissions": []
+}
