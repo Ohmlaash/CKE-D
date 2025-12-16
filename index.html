@@ -1,65 +1,607 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Custom Key Encoder & Decoder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
-            },
-            colors: {
-              // Extending neutral if needed, but standard palette works well for graphite
-              graphite: {
-                950: '#0a0a0a',
-                900: '#171717',
-                800: '#262626',
-              }
-            }
-          },
-        },
-      }
-    </script>
+    <meta name="description" content="A secure, client-side tool to encode and decode text using custom character keys.">
     <style>
-      body {
-        background-color: #0a0a0a; /* neutral-950 */
-        color: #e5e5e5; /* neutral-200 */
-      }
-      /* Custom scrollbar for code areas */
-      textarea::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-      textarea::-webkit-scrollbar-track {
-        background: #171717;
-      }
-      textarea::-webkit-scrollbar-thumb {
-        background: #404040;
-        border-radius: 5px;
-      }
-      textarea::-webkit-scrollbar-thumb:hover {
-        background: #525252;
-      }
+        /* --- CSS STYLES --- */
+        :root {
+            --bg-950: #0a0a0a; /* Dark Graphite */
+            --bg-900: #171717;
+            --bg-800: #262626;
+            --border-800: #262626;
+            --border-700: #404040;
+            --text-100: #f5f5f5;
+            --text-200: #e5e5e5;
+            --text-300: #d4d4d4;
+            --text-500: #737373;
+            --indigo-400: #818cf8;
+            --indigo-500: #6366f1;
+            --indigo-600: #4f46e5;
+            --emerald-400: #34d399;
+            --emerald-500: #10b981;
+            --red-400: #f87171;
+            --amber-500: #f59e0b;
+            
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-950);
+            color: var(--text-200);
+            font-family: var(--font-sans);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Helpers */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .p-2 { padding: 0.5rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-4 { padding: 1rem; }
+        .p-5 { padding: 1.25rem; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .text-xs { font-size: 0.75rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-lg { font-size: 1.125rem; }
+        .font-medium { font-weight: 500; }
+        .font-bold { font-weight: 700; }
+        .font-mono { font-family: var(--font-mono); }
+        .rounded-md { border-radius: 0.375rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-full { border-radius: 9999px; }
+        .border { border: 1px solid var(--border-800); }
+        .border-b { border-bottom: 1px solid var(--border-800); }
+        .border-t { border-top: 1px solid var(--border-800); }
+        .cursor-pointer { cursor: pointer; }
+        .uppercase { text-transform: uppercase; }
+        .tracking-wide { letter-spacing: 0.025em; }
+
+        /* Layout */
+        .max-w-7xl { max-width: 80rem; margin: 0 auto; width: 100%; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        @media (min-width: 1024px) {
+            .lg-grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
+            .lg-col-span-4 { grid-column: span 4; }
+            .lg-col-span-8 { grid-column: span 8; }
+            .lg-order-1 { order: 1; }
+            .lg-order-2 { order: 2; }
+            .order-1 { order: 2; } 
+            .order-2 { order: 1; }
+        }
+
+        /* Components */
+        .bg-neutral-900 { background-color: var(--bg-900); }
+        .bg-neutral-800 { background-color: var(--bg-800); }
+        .text-white { color: var(--text-100); }
+        .text-indigo-400 { color: var(--indigo-400); }
+        .text-emerald-400 { color: var(--emerald-400); }
+        .text-amber-500 { color: var(--amber-500); }
+        .text-neutral-500 { color: var(--text-500); }
+        
+        header {
+            background-color: rgba(23, 23, 23, 0.8);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        button {
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            color: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+
+        .btn-primary {
+            background-color: var(--indigo-600);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+        .btn-primary:hover { background-color: var(--indigo-500); transform: scale(1.02); }
+        
+        .btn-secondary {
+            background-color: var(--bg-800);
+            color: var(--text-300);
+            border: 1px solid var(--border-700);
+        }
+        .btn-secondary:hover { background-color: var(--border-700); }
+
+        .btn-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--red-400);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .btn-danger:hover { background-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+
+        textarea {
+            background-color: transparent;
+            color: var(--text-200);
+            border: none;
+            resize: none;
+            outline: none;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            width: 100%;
+            display: block;
+        }
+        textarea::placeholder { color: var(--text-500); }
+        
+        .key-textarea {
+            background-color: var(--bg-950);
+            border: 1px solid var(--border-700);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            height: 10rem;
+            transition: border-color 0.2s;
+        }
+        .key-textarea:focus { border-color: var(--indigo-500); color: var(--indigo-400); }
+        .key-textarea.error { border-color: var(--amber-500); color: #fef3c7; }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-900); }
+        ::-webkit-scrollbar-thumb { background: var(--border-700); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-500); }
+
+        .icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .icon-sm { width: 0.875rem; height: 0.875rem; }
+
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0"
-  }
-}
-</script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+<body>
+
+    <!-- Header -->
+    <header class="border-b">
+        <div class="max-w-7xl px-4 h-full flex items-center justify-between" style="height: 4rem;">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-neutral-800 rounded-lg border border-neutral-700">
+                    <svg class="icon text-white" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
+                </div>
+                <h1 class="font-bold text-lg text-white">
+                    Custom Key <span class="text-indigo-400">Encoder & Decoder</span>
+                </h1>
+            </div>
+            
+            <button id="eraseBtn" class="btn-danger px-4 py-2 text-xs font-bold uppercase tracking-wide rounded-md gap-2 cursor-pointer">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+                <span style="display:inline;">Erase my traces!</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-7xl p-4 lg:p-6" style="flex: 1; margin: 0 auto; overflow: hidden;">
+        <div class="grid lg-grid-cols-12 h-full">
+            
+            <!-- Left Panel: Key Config -->
+            <div class="lg-col-span-4 order-2 lg-order-1 flex flex-col gap-6">
+                <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-lg flex flex-col gap-4">
+                    <div class="flex items-center justify-between pb-2 border-b border-neutral-800">
+                        <div class="flex items-center gap-2">
+                            <svg class="icon text-indigo-400" viewBox="0 0 24 24"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>
+                            <h2 class="font-medium text-white">Key Configuration</h2>
+                        </div>
+                        <span id="duplicateWarning" class="hidden text-xs text-amber-500 font-medium flex items-center gap-1">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                            <span id="dupCount">0</span> Duplicates
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <p class="text-xs text-neutral-500">
+                            Maps characters to 1-based indices. 
+                            <span id="modeDesc">Characters from input are found here.</span>
+                        </p>
+                        <textarea id="keyInput" class="key-textarea" spellcheck="false"></textarea>
+                        
+                        <div class="flex items-center justify-between pt-1">
+                            <button id="resetKeyBtn" class="btn-secondary px-3 py-1 text-xs rounded gap-1.5 cursor-pointer">
+                                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                                Reset to Base64
+                            </button>
+                            
+                            <button id="cleanKeyBtn" class="hidden text-xs text-amber-400 hover:text-amber-500" style="text-decoration: underline;">Fix Duplicates</button>
+                            <div id="validKeyBadge" class="text-xs text-emerald-400 flex items-center gap-1">
+                                <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                                Valid Key
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-neutral-800 rounded-lg border border-neutral-700">
+                        <div class="text-xs font-mono text-neutral-500 flex justify-between">
+                            <span>Key Length:</span>
+                            <span id="keyLength" class="text-white">0 chars</span>
+                        </div>
+                        <div class="text-xs font-mono text-neutral-500 flex justify-between mt-1">
+                            <span>Mapping:</span>
+                            <span class="text-white">Space Separated</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Workspace -->
+            <div class="lg-col-span-8 order-1 lg-order-2 flex flex-col gap-4 h-full">
+                
+                <!-- Input Area -->
+                <div class="flex-col min-h-[200px] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg flex" style="flex: 1;">
+                    <div class="bg-neutral-900 border-b border-neutral-800 px-4 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span id="inputLabel" class="text-sm font-medium text-white">Input (Base64)</span>
+                            <span id="validFormatBadge" class="hidden text-[10px] bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-400/20">Valid Format</span>
+                        </div>
+                        <button id="clearInputBtn" class="hidden p-1.5 text-neutral-500 hover:text-red-400 rounded-md cursor-pointer">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-1 1-1h6c1 0 1 1 1 1v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                        </button>
+                    </div>
+                    <textarea id="mainInput" class="p-4" style="flex: 1;" placeholder="Paste Base64 string here..."></textarea>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex items-center gap-4 px-1">
+                    <button id="swapBtn" class="btn-secondary px-4 py-2 text-sm font-medium rounded-lg gap-2 shadow-md cursor-pointer">
+                        <svg class="icon text-indigo-400" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                        Swap & Switch
+                    </button>
+                    <div class="w-full border-t border-neutral-800"></div>
+                    <button id="processBtn" class="btn-primary px-8 py-2.5 text-sm font-bold rounded-lg gap-2 cursor-pointer">
+                        <svg class="icon fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <span id="processBtnText">ENCODE</span>
+                    </button>
+                </div>
+
+                <!-- Output Area -->
+                <div class="flex-col min-h-[200px] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg flex relative" style="flex: 1;">
+                    <div class="bg-neutral-900 border-b border-neutral-800 px-4 py-3 flex items-center justify-between">
+                        <span id="outputLabel" class="text-sm font-medium text-emerald-400">Result (Custom Code)</span>
+                        <button id="copyBtn" disabled class="px-3 py-1 text-xs rounded-md border border-neutral-700 bg-neutral-800 text-neutral-300 gap-1.5">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            <span id="copyBtnText">Copy</span>
+                        </button>
+                    </div>
+                    <div class="relative" style="flex: 1; background-color: rgba(10,10,10,0.3);">
+                        <textarea id="mainOutput" readonly class="p-4 absolute inset-0 text-emerald-400" placeholder="Result will appear here..."></textarea>
+                    </div>
+
+                    <!-- Validation Message -->
+                    <div id="validationMsg" class="hidden absolute bottom-4 left-4 right-4 px-3 py-2 rounded-lg border flex items-center gap-2 text-xs shadow-lg backdrop-blur-md">
+                        <svg id="msgIcon" class="icon" viewBox="0 0 24 24"></svg>
+                        <span id="msgText"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-6 text-center text-neutral-500 text-sm border-t border-neutral-800">
+        <p>100% Client-side. No data is sent to any server.</p>
+    </footer>
+
+    <script>
+        // --- CONSTANTS & STATE ---
+        const PRESETS = {
+            BASE64: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=:;,-."
+        };
+        const SEPARATOR = ' ';
+
+        const state = {
+            key: PRESETS.BASE64,
+            input: '',
+            output: '',
+            mode: 'encode' // 'encode' | 'decode'
+        };
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            keyInput: document.getElementById('keyInput'),
+            mainInput: document.getElementById('mainInput'),
+            mainOutput: document.getElementById('mainOutput'),
+            processBtn: document.getElementById('processBtn'),
+            processBtnText: document.getElementById('processBtnText'),
+            swapBtn: document.getElementById('swapBtn'),
+            clearInputBtn: document.getElementById('clearInputBtn'),
+            resetKeyBtn: document.getElementById('resetKeyBtn'),
+            cleanKeyBtn: document.getElementById('cleanKeyBtn'),
+            copyBtn: document.getElementById('copyBtn'),
+            copyBtnText: document.getElementById('copyBtnText'),
+            eraseBtn: document.getElementById('eraseBtn'),
+            inputLabel: document.getElementById('inputLabel'),
+            outputLabel: document.getElementById('outputLabel'),
+            modeDesc: document.getElementById('modeDesc'),
+            duplicateWarning: document.getElementById('duplicateWarning'),
+            dupCount: document.getElementById('dupCount'),
+            validKeyBadge: document.getElementById('validKeyBadge'),
+            keyLength: document.getElementById('keyLength'),
+            validFormatBadge: document.getElementById('validFormatBadge'),
+            validationMsg: document.getElementById('validationMsg'),
+            msgText: document.getElementById('msgText'),
+            msgIcon: document.getElementById('msgIcon')
+        };
+
+        // --- LOGIC ---
+        function generateKeyMap(key) {
+            const map = new Map();
+            for (let i = 0; i < key.length; i++) {
+                const char = key[i];
+                if (!map.has(char)) map.set(char, i + 1);
+            }
+            return map;
+        }
+
+        function cleanKey(key) {
+            return Array.from(new Set(key.split(''))).join('');
+        }
+
+        function getDuplicateChars(key) {
+            const seen = new Set();
+            const duplicates = new Set();
+            for (const char of key) {
+                if (seen.has(char)) duplicates.add(char);
+                seen.add(char);
+            }
+            return Array.from(duplicates);
+        }
+
+        function isValidBase64(str) {
+            if (!str) return true;
+            const clean = str.replace(/\s/g, '');
+            if (clean.length === 0) return true;
+            return /^[A-Za-z0-9+/=]+$/.test(clean);
+        }
+
+        function sanitizeBase64Input(str) {
+            return str.replace(/\s/g, '');
+        }
+
+        function encodeString(input, keyMap, separator) {
+            if (!input) return { result: '', hasUnmapped: false };
+            const result = [];
+            let hasUnmapped = false;
+            for (let i = 0; i < input.length; i++) {
+                const char = input[i];
+                const index = keyMap.get(char);
+                if (index !== undefined) {
+                    result.push(index.toString());
+                } else {
+                    result.push(char);
+                    if (char.trim() !== '') hasUnmapped = true;
+                }
+            }
+            return { result: result.join(separator), hasUnmapped };
+        }
+
+        function decodeString(encoded, key, separator) {
+            if (!encoded || !key) return { result: '', hasErrors: false };
+            const result = [];
+            let hasErrors = false;
+
+            const parts = separator === ' ' ? encoded.split(/\s+/) : encoded.split(separator);
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (part === '') continue;
+                const index = parseInt(part, 10);
+                if (!isNaN(index)) {
+                    if (index > 0 && index <= key.length) {
+                        result.push(key[index - 1]);
+                    } else {
+                        result.push(part);
+                        hasErrors = true;
+                    }
+                } else {
+                    result.push(part);
+                    hasErrors = true;
+                }
+            }
+            return { result: result.join(''), hasErrors };
+        }
+
+        // --- UI ---
+
+        function render() {
+            // Key UI
+            els.keyInput.value = state.key;
+            els.keyLength.textContent = state.key.length + " chars";
+            
+            const duplicates = getDuplicateChars(state.key);
+            if (duplicates.length > 0) {
+                els.duplicateWarning.classList.remove('hidden');
+                els.dupCount.textContent = duplicates.length;
+                els.cleanKeyBtn.classList.remove('hidden');
+                els.validKeyBadge.classList.add('hidden');
+                els.keyInput.classList.add('error');
+            } else {
+                els.duplicateWarning.classList.add('hidden');
+                els.cleanKeyBtn.classList.add('hidden');
+                els.validKeyBadge.classList.remove('hidden');
+                els.keyInput.classList.remove('error');
+            }
+
+            // Input UI
+            els.mainInput.value = state.input;
+            if (state.input) els.clearInputBtn.classList.remove('hidden');
+            else els.clearInputBtn.classList.add('hidden');
+
+            if (state.mode === 'encode' && state.input.length > 0 && isValidBase64(state.input)) {
+                els.validFormatBadge.classList.remove('hidden');
+            } else {
+                els.validFormatBadge.classList.add('hidden');
+            }
+
+            // Output UI
+            els.mainOutput.value = state.output;
+            els.copyBtn.disabled = !state.output;
+            if (state.output) {
+                els.copyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                els.copyBtn.classList.add('hover:bg-neutral-700', 'cursor-pointer');
+            } else {
+                els.copyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                els.copyBtn.classList.remove('hover:bg-neutral-700', 'cursor-pointer');
+            }
+
+            // Mode UI
+            if (state.mode === 'encode') {
+                els.inputLabel.textContent = 'Input (Base64)';
+                els.outputLabel.textContent = 'Result (Custom Code)';
+                els.processBtnText.textContent = 'ENCODE';
+                els.mainInput.placeholder = "Paste Base64 string here...";
+                els.modeDesc.textContent = 'Characters from input are found here.';
+            } else {
+                els.inputLabel.textContent = 'Input (Encoded)';
+                els.outputLabel.textContent = 'Result (Base64)';
+                els.processBtnText.textContent = 'DECODE';
+                els.mainInput.placeholder = "Paste encoded sequence here (e.g. 1 2 55 64...)";
+                els.modeDesc.textContent = 'Codes from input look up characters here.';
+            }
+        }
+
+        function showValidation(type, text) {
+            els.validationMsg.classList.remove('hidden');
+            els.msgText.textContent = text;
+            els.validationMsg.className = "absolute bottom-4 left-4 right-4 px-3 py-2 rounded-lg border flex items-center gap-2 text-xs shadow-lg backdrop-blur-md fade-in";
+            
+            if (type === 'error') {
+                els.validationMsg.classList.add('bg-red-900', 'bg-opacity-90', 'text-red-100', 'border-red-500', 'border-opacity-30');
+                els.msgIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>';
+            } else {
+                els.validationMsg.classList.add('bg-amber-900', 'bg-opacity-90', 'text-amber-100', 'border-amber-500', 'border-opacity-30');
+                els.msgIcon.innerHTML = '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>';
+            }
+        }
+
+        function hideValidation() {
+            els.validationMsg.classList.add('hidden');
+        }
+
+        function handleProcess() {
+            hideValidation();
+            if (!state.input.trim()) {
+                state.output = '';
+                render();
+                return;
+            }
+
+            try {
+                if (state.mode === 'encode') {
+                    const keyMap = generateKeyMap(state.key);
+                    const cleanInput = sanitizeBase64Input(state.input);
+                    const { result, hasUnmapped } = encodeString(cleanInput, keyMap, SEPARATOR);
+                    state.output = result;
+                    if (hasUnmapped) {
+                        showValidation('warning', 'Some characters in the input were not found in the Key and were left as-is.');
+                    }
+                } else {
+                    const { result, hasErrors } = decodeString(state.input, state.key, SEPARATOR);
+                    state.output = result;
+                    if (hasErrors) {
+                        showValidation('error', 'Input contained codes that were invalid or out of bounds for the current key.');
+                    }
+                }
+                render();
+            } catch (e) {
+                state.output = 'Error processing text.';
+                render();
+            }
+        }
+
+        // --- LISTENERS ---
+
+        els.keyInput.addEventListener('input', (e) => {
+            state.key = e.target.value;
+            render();
+        });
+
+        els.mainInput.addEventListener('input', (e) => {
+            state.input = e.target.value;
+            render();
+        });
+
+        els.clearInputBtn.addEventListener('click', () => {
+            state.input = '';
+            hideValidation();
+            render();
+            els.mainInput.focus();
+        });
+
+        els.resetKeyBtn.addEventListener('click', () => {
+            state.key = PRESETS.BASE64;
+            render();
+        });
+
+        els.cleanKeyBtn.addEventListener('click', () => {
+            state.key = cleanKey(state.key);
+            render();
+        });
+
+        els.swapBtn.addEventListener('click', () => {
+            state.input = state.output || '';
+            state.output = '';
+            state.mode = state.mode === 'encode' ? 'decode' : 'encode';
+            hideValidation();
+            render();
+        });
+
+        els.processBtn.addEventListener('click', handleProcess);
+
+        els.copyBtn.addEventListener('click', () => {
+            if (!state.output) return;
+            navigator.clipboard.writeText(state.output);
+            els.copyBtnText.textContent = "Copied!";
+            els.copyBtnText.classList.add('text-emerald-400', 'font-bold');
+            setTimeout(() => {
+                els.copyBtnText.textContent = "Copy";
+                els.copyBtnText.classList.remove('text-emerald-400', 'font-bold');
+            }, 2000);
+        });
+
+        els.eraseBtn.addEventListener('click', () => {
+            if(confirm("This will clear any local browser data for this page and reload. Proceed?")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.cookie.split(";").forEach((c) => {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+                window.location.reload();
+            }
+        });
+
+        // Init
+        render();
+
+    </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
